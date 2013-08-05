@@ -4,6 +4,7 @@ flags = [
 	'-Werror',
 	'-fexceptions',
 	'-std=c++11',
+    '-stdlib=libc++',
 	'-x', 'c++'
 ]
 def FlagsForFile(filename):
