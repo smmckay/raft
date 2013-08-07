@@ -1,6 +1,6 @@
 #include <gflags/gflags.h>
 #include <set>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 
 #include "ostream_ops.h"
 #include "raft_peer.h"
@@ -23,9 +23,13 @@ int main(int argc, char **argv)
 	std::set<int> peer_ports = {10000, 10001, 10002, 10003};
 	peer_ports.erase(FLAGS_port);
 
-	boost::asio::io_service io;
-	raft_peer peer(io, FLAGS_port, peer_ports);
-	io.run();
+	asio::io_service io;
+	try {
+		raft_peer peer(io, FLAGS_port, peer_ports);
+		io.run();
+	} catch (std::exception &e) {
+		BOOST_LOG_TRIVIAL(error) << "Caught exception: " << e.what();
+	}
 	return 0;
 }
 
