@@ -1,4 +1,7 @@
 #include <set>
+#include <random>
+#include <thread>
+#include <chrono>
 #include <asio.hpp>
 #include <boost/log/trivial.hpp>
 
@@ -16,6 +19,12 @@ public:
 		_acceptor(io, tcp::endpoint(tcp::v4(), local_port)),
 		_peer_ports(peer_ports)
 	{
+		std::seed_seq seq = {
+			static_cast<int>(std::hash<std::thread::id>()(std::this_thread::get_id())),
+			static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())
+		};
+		_rand_gen.seed(seq);
+
 		BOOST_LOG_TRIVIAL(info) << "Listening on port " << local_port;
 		_acceptor.listen();
 		start_accept();
@@ -36,4 +45,5 @@ private:
 	tcp::acceptor _acceptor;
 	std::set<int> _peer_ports;
 	std::map<int, peer_connection::pointer> _active_peers;
+	std::mt19937 _rand_gen;
 };

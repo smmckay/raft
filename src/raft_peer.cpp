@@ -50,8 +50,11 @@ void raft_peer::handle_connect(peer_connection::pointer new_connection,
 		BOOST_LOG_TRIVIAL(debug) << "Connected to " << peer_port;
 		add_active_peer(new_connection);
 	} else {
-		BOOST_LOG_TRIVIAL(warning) << "Connection failed: " << error.message();
+		std::uniform_int_distribution<> dist(500, 750);
+		int delay = dist(_rand_gen);
+		BOOST_LOG_TRIVIAL(warning) << "Connection failed: " << error.message() << ". Retrying in " << delay << "ms";
 		new_connection->close();
+		//asio::deadline_timer timer(_io, std::chrono::milliseconds(delay));
 	}
 }
 
