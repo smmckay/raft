@@ -1,14 +1,11 @@
-SUBDIRS = libuv
+SUBDIRS = libuv glog-0.3.3 gflags-2.0
 
 AM_CXXFLAGS = -std=c++11 -fexceptions -Wall -Wextra -Werror
-if CLANG
-AM_CXXFLAGS += -stdlib=libc++
-endif
-AM_CPPFLAGS = -I$(top_srcdir)/src -DBOOST_ALL_DYN_LINK
-AM_LDFLAGS = -lboost_system-mt -lboost_log-mt
+AM_CPPFLAGS = -I$(top_srcdir)/gflags-2.0/src \
+	      -I$(top_srcdir)/glog-0.3.3/src \
+	      -DBOOST_ALL_DYN_LINK
+AM_LDFLAGS = -lboost_system-mt
 
 bin_PROGRAMS = src/raft_peer
-src_raft_peer_SOURCES = src/peer_connection.cpp src/raft_peer.cpp src/main.cpp \
-			src/gflags.cc src/gflags_reporting.cc \
-			src/gflags_completions.cc
-src_raft_peer_LDADD = libuv/libuv.a
+src_raft_peer_SOURCES = src/peer_connection.cpp src/raft_peer.cpp src/main.cpp
+src_raft_peer_LDADD = libuv/libuv.a gflags-2.0/.libs/libgflags.a glog-0.3.3/.libs/libglog.a

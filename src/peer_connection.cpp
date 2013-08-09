@@ -1,5 +1,5 @@
 #include <functional>
-#include <boost/log/trivial.hpp>
+#include <glog/logging.h>
 
 #include "peer_connection.h"
 
@@ -26,12 +26,12 @@ void peer_connection::close(bool shutdown)
 	if (shutdown) {
 		_socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
 		if (ec) {
-			BOOST_LOG_TRIVIAL(warning) << "socket shutdown failed: " << ec.message();
+			LOG(WARNING) << "socket shutdown failed: " << ec.message();
 		}
 	}
 	_socket.close(ec);
 	if (ec) {
-		BOOST_LOG_TRIVIAL(warning) << "socket close failed: " << ec.message();
+		LOG(WARNING) << "socket close failed: " << ec.message();
 	}
 }
 

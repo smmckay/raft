@@ -16,11 +16,11 @@ void raft_peer::handle_accept(peer_connection::pointer peer,
 		const asio::error_code& error)
 {
 	if (!error) {
-		BOOST_LOG_TRIVIAL(debug) << "Received connection from "
+		LOG(INFO) << "Received connection from "
 			<< peer->socket().remote_endpoint().port();
 		add_active_peer(peer);
 	} else {
-		BOOST_LOG_TRIVIAL(warning) << "async_accept failed: " << error.message();
+		LOG(WARNING) << "async_accept failed: " << error.message();
 	}
 	start_accept();
 }
@@ -34,7 +34,7 @@ void raft_peer::start_connect()
 
 void raft_peer::start_connect(int port)
 {
-	BOOST_LOG_TRIVIAL(debug) << "async_connect to " << port;
+	LOG(INFO) << "async_connect to " << port;
 	auto new_connection = peer_connection::create(_io);
 	asio::ip::tcp::endpoint peer_endpoint(
 			asio::ip::address_v4::any(), port);
@@ -47,12 +47,12 @@ void raft_peer::handle_connect(peer_connection::pointer new_connection,
 {
 	if (!error) {
 		int peer_port = new_connection->socket().remote_endpoint().port();
-		BOOST_LOG_TRIVIAL(debug) << "Connected to " << peer_port;
+		LOG(INFO) << "Connected to " << peer_port;
 		add_active_peer(new_connection);
 	} else {
 		std::uniform_int_distribution<> dist(500, 750);
 		int delay = dist(_rand_gen);
-		BOOST_LOG_TRIVIAL(warning) << "Connection failed: " << error.message() << ". Retrying in " << delay << "ms";
+		LOG(WARNING) << "Connection failed: " << error.message() << ". Retrying in " << delay << "ms";
 		new_connection->close();
 		//asio::deadline_timer timer(_io, std::chrono::milliseconds(delay));
 	}
@@ -65,7 +65,7 @@ void raft_peer::add_active_peer(peer_connection::pointer peer)
 	if (result.second) {
 		peer->start();
 	} else {
-		BOOST_LOG_TRIVIAL(debug) << "Existing connection to " << port
+		LOG(INFO) << "Existing connection to " << port
 			<< ", closing new connection";
 		peer->close(true);
 	}

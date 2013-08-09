@@ -1,4 +1,5 @@
 #include <gflags/gflags.h>
+#include <glog/logging.h>
 #include <set>
 #include <asio.hpp>
 
@@ -19,6 +20,7 @@ static const bool port_dummy = google::RegisterFlagValidator(&FLAGS_port, &Valid
 int main(int argc, char **argv)
 {
 	google::ParseCommandLineFlags(&argc, &argv, true);
+	google::InitGoogleLogging(argv[0]);
 
 	std::set<int> peer_ports = {10000, 10001, 10002, 10003};
 	peer_ports.erase(FLAGS_port);
@@ -28,7 +30,7 @@ int main(int argc, char **argv)
 		raft_peer peer(io, FLAGS_port, peer_ports);
 		io.run();
 	} catch (std::exception &e) {
-		BOOST_LOG_TRIVIAL(error) << "Caught exception: " << e.what();
+		LOG(ERROR) << "Caught exception: " << e.what();
 	}
 	return 0;
 }

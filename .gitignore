@@ -1,5 +1,13 @@
 *.pyc
 *.o
+*.Po
+*.lo
+*.la
+
+.svn/
+.deps/
+.libs/
+stamp-h1
 
 aclocal.m4
 autom4te.cache/
@@ -13,13 +21,30 @@ config.sub
 configure
 depcomp
 install-sh
+libtool
+libtool.m4
+ltmain.sh
+ltoptions.m4
+ltsugar.m4
+ltversion.m4
+lt~obsolete.m4
 missing
 
 src/config.h
 src/config.h.in
-src/gflags/*.h
 src/raft_peer
-src/stamp-h1
-src/.deps/
 src/.dirstamp
+
+glog-0.3.3/*_unittest
+glog-0.3.3/libglog.pc
+glog-0.3.3/src/config.h
+glog-0.3.3/src/glog/logging.h
+glog-0.3.3/src/glog/raw_logging.h
+glog-0.3.3/src/glog/stl_logging.h
+glog-0.3.3/src/glog/vlog_is_on.h
+
+gflags-2.0/src/config.h
+gflags-2.0/src/gflags/gflags.h
+gflags-2.0/src/gflags/gflags_completions.h
+gflags-2.0/src/gflags/gflags_declare.h
 

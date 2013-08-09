@@ -3,7 +3,7 @@
 #include <thread>
 #include <chrono>
 #include <asio.hpp>
-#include <boost/log/trivial.hpp>
+#include <glog/logging.h>
 
 #include "peer_connection.h"
 
@@ -25,7 +25,7 @@ public:
 		};
 		_rand_gen.seed(seq);
 
-		BOOST_LOG_TRIVIAL(info) << "Listening on port " << local_port;
+		LOG(INFO) << "Listening on port " << local_port;
 		_acceptor.listen();
 		start_accept();
 		start_connect();
