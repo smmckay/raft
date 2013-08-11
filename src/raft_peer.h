@@ -2,6 +2,7 @@
 #include <random>
 #include <thread>
 #include <chrono>
+#include <memory>
 #include <asio.hpp>
 #include <glog/logging.h>
 
@@ -37,7 +38,7 @@ private:
 			const asio::error_code &error);
 	void start_connect();
 	void start_connect(int port);
-	void handle_connect(peer_connection::pointer peer,
+	void handle_connect(peer_connection::pointer peer, int port,
 			const asio::error_code &error);
 	void add_active_peer(peer_connection::pointer peer);
 
@@ -45,5 +46,6 @@ private:
 	tcp::acceptor _acceptor;
 	std::set<int> _peer_ports;
 	std::map<int, peer_connection::pointer> _active_peers;
+	std::map<int, std::unique_ptr<asio::deadline_timer>> _retry_timers;
 	std::mt19937 _rand_gen;
 };

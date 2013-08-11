@@ -1,4 +1,5 @@
 #include <functional>
+#include <boost/date_time/posix_time/posix_time_types.hpp>
 
 #include "raft_peer.h"
 #include "peer_connection.h"
@@ -39,10 +40,10 @@ void raft_peer::start_connect(int port)
 	asio::ip::tcp::endpoint peer_endpoint(
 			asio::ip::address_v4::any(), port);
 	new_connection->socket().async_connect(peer_endpoint,
-			std::bind(&raft_peer::handle_connect, this, new_connection, _1));
+			std::bind(&raft_peer::handle_connect, this, new_connection, port, _1));
 }
 
-void raft_peer::handle_connect(peer_connection::pointer new_connection,
+void raft_peer::handle_connect(peer_connection::pointer new_connection, int port,
 		const asio::error_code& error)
 {
 	if (!error) {
@@ -52,9 +53,23 @@ void raft_peer::handle_connect(peer_connection::pointer new_connection,
 	} else {
 		std::uniform_int_distribution<> dist(500, 750);
 		int delay = dist(_rand_gen);
-		LOG(WARNING) << "Connection failed: " << error.message() << ". Retrying in " << delay << "ms";
+		LOG(WARNING) << "Connection to port " << port << " failed: "
+			<< error.message() << ". Retrying in " << delay << "ms";
 		new_connection->close();
-		//asio::deadline_timer timer(_io, std::chrono::milliseconds(delay));
+
+		if (!_retry_timers[port]) {
+			_retry_timers[port].reset(new asio::deadline_timer(_io,
+						boost::posix_time::milliseconds(delay)));
+		} else {
+			_retry_timers[port]->expires_from_now(
+					boost::posix_time::milliseconds(delay));
+		}
+		_retry_timers[port]->async_wait([this, port](const asio::error_code& error) {
+			start_connect(port);
+			if (error) {
+				LOG(ERROR) << "Timer failed: " << error.message();
+			}
+		});
 	}
 }
 

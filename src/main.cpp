@@ -21,6 +21,7 @@ int main(int argc, char **argv)
 {
 	google::ParseCommandLineFlags(&argc, &argv, true);
 	google::InitGoogleLogging(argv[0]);
+	FLAGS_logtostderr = 1;
 
 	std::set<int> peer_ports = {10000, 10001, 10002, 10003};
 	peer_ports.erase(FLAGS_port);
