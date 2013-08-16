@@ -1,7 +1,7 @@
+#include <set>
+#include <cstdlib>
 #include <gflags/gflags.h>
 #include <glog/logging.h>
-#include <set>
-#include <asio.hpp>
 
 #include "ostream_ops.h"
 #include "raft_peer.h"
@@ -21,15 +21,16 @@ int main(int argc, char **argv)
 {
 	google::ParseCommandLineFlags(&argc, &argv, true);
 	google::InitGoogleLogging(argv[0]);
+	google::InstallFailureSignalHandler();
+	google::InstallFailureFunction([]() { std::exit(EXIT_FAILURE); });
 	FLAGS_logtostderr = 1;
 
 	std::set<int> peer_ports = {10000, 10001, 10002, 10003};
 	peer_ports.erase(FLAGS_port);
 
-	asio::io_service io;
 	try {
-		raft_peer peer(io, FLAGS_port, peer_ports);
-		io.run();
+		raft_peer peer(FLAGS_port, peer_ports);
+		peer.loop();
 	} catch (std::exception &e) {
 		LOG(ERROR) << "Caught exception: " << e.what();
 	}

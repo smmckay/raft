@@ -1,88 +1,81 @@
-#include <functional>
-#include <boost/date_time/posix_time/posix_time_types.hpp>
+#include <cerrno>
+#include <cstdlib>
+#include <cstdio>
+#include <sys/types.h>
+#include <sys/event.h>
+#include <sys/time.h>
+#include <string.h>
+#include <glog/logging.h>
+#include <nanomsg/nn.h>
+#include <nanomsg/bus.h>
 
 #include "raft_peer.h"
-#include "peer_connection.h"
 
-using namespace std::placeholders;
-
-void raft_peer::start_accept()
+raft_peer::raft_peer(int local_port, const std::set<int> &peer_ports) noexcept
+	: _peer_ports(peer_ports)
 {
-	auto new_connection = peer_connection::create(_io);
-	_acceptor.async_accept(new_connection->socket(),
-			std::bind(&raft_peer::handle_accept, this, new_connection, _1));
-}
+	_socket = nn_socket(AF_SP, NN_BUS);
+	CHECK_GE(_socket, 0) << "nn_socket: " << nn_strerror(errno);
 
-void raft_peer::handle_accept(peer_connection::pointer peer,
-		const asio::error_code& error)
-{
-	if (!error) {
-		LOG(INFO) << "Received connection from "
-			<< peer->socket().remote_endpoint().port();
-		add_active_peer(peer);
-	} else {
-		LOG(WARNING) << "async_accept failed: " << error.message();
-	}
-	start_accept();
-}
+	_kqueue = kqueue();
+	CHECK_GE(_kqueue, 0) << "kqueue: " << strerror(errno);
 
-void raft_peer::start_connect()
-{
-	for (const auto &port: _peer_ports) {
-		start_connect(port);
-	}
-}
+	char addr_buf[NN_SOCKADDR_MAX];
+	std::snprintf(addr_buf, NN_SOCKADDR_MAX, "tcp://*:%d", local_port);
+	int err = nn_bind(_socket, addr_buf);
+	CHECK_GE(err, 0) << "nn_bind: " << nn_strerror(errno);
+	LOG(INFO) << "Listening on port " << local_port;
 
-void raft_peer::start_connect(int port)
-{
-	LOG(INFO) << "async_connect to " << port;
-	auto new_connection = peer_connection::create(_io);
-	asio::ip::tcp::endpoint peer_endpoint(
-			asio::ip::address_v4::any(), port);
-	new_connection->socket().async_connect(peer_endpoint,
-			std::bind(&raft_peer::handle_connect, this, new_connection, port, _1));
-}
-
-void raft_peer::handle_connect(peer_connection::pointer new_connection, int port,
-		const asio::error_code& error)
-{
-	if (!error) {
-		int peer_port = new_connection->socket().remote_endpoint().port();
-		LOG(INFO) << "Connected to " << peer_port;
-		add_active_peer(new_connection);
-	} else {
-		std::uniform_int_distribution<> dist(500, 750);
-		int delay = dist(_rand_gen);
-		LOG(WARNING) << "Connection to port " << port << " failed: "
-			<< error.message() << ". Retrying in " << delay << "ms";
-		new_connection->close();
-
-		if (!_retry_timers[port]) {
-			_retry_timers[port].reset(new asio::deadline_timer(_io,
-						boost::posix_time::milliseconds(delay)));
-		} else {
-			_retry_timers[port]->expires_from_now(
-					boost::posix_time::milliseconds(delay));
+	for (const int &port : peer_ports) {
+		if (port <= local_port) {
+			continue;
 		}
-		_retry_timers[port]->async_wait([this, port](const asio::error_code& error) {
-			start_connect(port);
-			if (error) {
-				LOG(ERROR) << "Timer failed: " << error.message();
-			}
-		});
+		std::snprintf(addr_buf, NN_SOCKADDR_MAX,
+				"tcp://localhost:%d", port);
+		err = nn_connect(_socket, addr_buf);
+		CHECK_GE(err, 0) << "nn_connect: " << nn_strerror(errno);
+		LOG(INFO) << "Connecting to port " << port;
+	}
+
+	struct kevent events[2];
+	int rcvfd;
+	size_t int_len = sizeof(rcvfd);
+	err = nn_getsockopt(_socket, NN_SOL_SOCKET, NN_RCVFD, &rcvfd, &int_len);
+	CHECK_GE(err, 0) << "nn_getsockopt: " << nn_strerror(errno);
+	EV_SET(&events[0], rcvfd, EVFILT_READ, EV_ADD, 0, 0, NULL);
+	EV_SET(&events[1], PING_TIMER, EVFILT_TIMER, EV_ADD, 0, 1000, NULL);
+	err = kevent(_kqueue, events, 2, NULL, 0, NULL);
+	CHECK_GE(err, 0) << "kevent: " << strerror(errno);
+}
+
+raft_peer::~raft_peer()
+{
+	int err;
+	do {
+		err = nn_close(_socket);
+	} while (err < 0 && errno == EINTR);
+	if (err < 0) {
+		LOG(WARNING) << "nn_close failed: " << nn_strerror(errno);
 	}
 }
 
-void raft_peer::add_active_peer(peer_connection::pointer peer)
+
+void raft_peer::loop()
 {
-	int port = peer->socket().remote_endpoint().port();
-	auto result = _active_peers.insert(std::pair<int, peer_connection::pointer>(port, peer));
-	if (result.second) {
-		peer->start();
-	} else {
-		LOG(INFO) << "Existing connection to " << port
-			<< ", closing new connection";
-		peer->close(true);
+	struct kevent events[2];
+	while (true) {
+		int nevents = kevent(_kqueue, NULL, 0, events, 3, NULL);
+		CHECK_GE(nevents, 0) << "kqueue failed: " << strerror(errno);
+		for (int i = 0; i < nevents; i++) {
+			switch (events[i].filter) {
+			case EVFILT_TIMER:
+				LOG(INFO) << "tick " << events[i].data;
+				break;
+			case EVFILT_READ:
+				LOG(INFO) << "msg in";
+				break;
+			}
+		}
 	}
 }
 
