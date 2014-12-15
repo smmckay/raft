@@ -1,0 +1,26 @@
+[root]
+name = "raft"
+version = "0.1.0"
+dependencies = [
+ "docopt_macros 0.6.8 (git+git://github.com/docopt/docopt.rs)",
+ "toml 0.1.2 (git+https://github.com/alexcrichton/toml-rs)",
+]
+
+[[package]]
+name = "docopt"
+version = "0.6.8"
+source = "git+git://github.com/docopt/docopt.rs#d64e31bf7ec44660bb4f98f5ab79c42758ea6b90"
+
+[[package]]
+name = "docopt_macros"
+version = "0.6.8"
+source = "git+git://github.com/docopt/docopt.rs#d64e31bf7ec44660bb4f98f5ab79c42758ea6b90"
+dependencies = [
+ "docopt 0.6.8 (git+git://github.com/docopt/docopt.rs)",
+]
+
+[[package]]
+name = "toml"
+version = "0.1.2"
+source = "git+https://github.com/alexcrichton/toml-rs#1e35b001094b20d2452adff305e418591d4000fb"
+

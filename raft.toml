@@ -1,0 +1,3 @@
+[net]
+local_port = 2160
+multicast_addr = "239.10.10.10"

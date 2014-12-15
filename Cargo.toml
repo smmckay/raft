@@ -1,0 +1,12 @@
+[package]
+
+name = "raft"
+version = "0.1.0"
+authors = [ "steve@b.abbies.us" ]
+
+[dependencies.toml]
+git = "https://github.com/alexcrichton/toml-rs"
+
+[dependencies.docopt_macros]
+git = "git://github.com/docopt/docopt.rs"
+
